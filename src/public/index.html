@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Node.js App</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔒 Secure Node.js Application</h1>
+            <p>CI/CD Pipeline with Jenkins, Security Scans & Docker</p>
+        </header>
+        
+        <main>
+            <section class="status-card">
+                <h2>Application Status</h2>
+                <div id="status">Loading...</div>
+                <button onclick="checkHealth()">Check Health</button>
+            </section>
+
+            <section class="data-card">
+                <h2>Application Data</h2>
+                <div id="data">Loading...</div>
+                <button onclick="fetchData()">Fetch Data</button>
+            </section>
+
+            <section class="input-card">
+                <h2>Send Message</h2>
+                <input type="text" id="messageInput" placeholder="Enter a message">
+                <button onclick="sendMessage()">Send</button>
+                <div id="response"></div>
+            </section>
+
+            <section class="info-card">
+                <h2>Pipeline Features</h2>
+                <ul>
+                    <li>✓ Gitleaks - Secret scanning</li>
+                    <li>✓ SonarQube - Code quality analysis</li>
+                    <li>✓ Trivy - Container vulnerability scanning</li>
+                    <li>✓ Docker - Image build and push</li>
+                    <li>✓ Docker Compose - Deployment automation</li>
+                </ul>
+            </section>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

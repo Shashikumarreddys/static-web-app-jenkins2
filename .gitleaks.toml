@@ -1,0 +1,11 @@
+title = "Gitleaks Config"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "secret-patterns"
+description = "Detects common secret patterns"
+pattern = '''(?i)(password|api_key|secret|token)\s*=\s*['"](.+?)['"]'''
+entropy = 3.5
+keywords = ["password", "api_key", "secret", "token"]
