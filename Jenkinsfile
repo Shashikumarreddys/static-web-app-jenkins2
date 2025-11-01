@@ -5,7 +5,6 @@ pipeline {
         DOCKER_REGISTRY = 'docker.io'
         DOCKER_REPO = 'shashikumarrreddy/node-app-pipeline'
         DOCKER_CREDENTIALS = credentials('dockerhub-credentials')
-        GITHUB_CREDENTIALS = credentials('github-credentials')
         TARGET_HOST = credentials('target-host')
         TARGET_KEY = credentials('target-ssh-key')
         DEPLOY_PATH = '/opt/node-app-pipeline'
@@ -14,52 +13,11 @@ pipeline {
         LATEST_TAG = "${DOCKER_REGISTRY}/${DOCKER_REPO}:latest"
     }
 
-    options {
-        buildDiscarder(logRotator(numToKeepStr: '30'))
-        timeout(time: 60, unit: 'MINUTES')
-        disableConcurrentBuilds()
-        timestamps()
-    }
-
     stages {
         stage('Checkout Code') {
             steps {
-                script {
-                    echo "🔄 Checking out code from repository..."
-                    checkout scm
-                }
-            }
-        }
-
-        stage('Build Docker Image') {
-            steps {
-                script {
-                    echo "🐳 Building Docker image..."
-                    sh '''
-                        docker build \
-                            -t ${IMAGE_TAG} \
-                            -t ${LATEST_TAG} \
-                            -f Dockerfile .
-                        
-                        docker images | grep node-app-pipeline
-                    '''
-                }
-            }
-        }
-
-        stage('Push to Docker Registry') {
-            steps {
-                script {
-                    echo "📤 Pushing image to Docker registry..."
-                    sh '''
-                        echo "${DOCKER_CREDENTIALS_PSW}" | docker login -u "${DOCKER_CREDENTIALS_USR}" --password-stdin
-                        
-                        docker push ${IMAGE_TAG}
-                        docker push ${LATEST_TAG}
-                        
-                        docker logout
-                    '''
-                }
+                echo "🔄 Checking out code..."
+                checkout scm
             }
         }
 
@@ -68,54 +26,30 @@ pipeline {
                 branch 'main'
             }
             steps {
-                script {
-                    echo "🚀 Deploying to target server..."
-                    sh '''
-                        mkdir -p ~/.ssh
-                        echo "${TARGET_KEY}" > ~/.ssh/deploy_key
-                        chmod 600 ~/.ssh/deploy_key
-                        
-                        SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ~/.ssh/deploy_key"
-                        
-                        ssh ${SSH_OPTS} ${TARGET_USER}@${TARGET_HOST} << 'EOF'
-                            mkdir -p ${DEPLOY_PATH}
-                            cd ${DEPLOY_PATH}
-                            
-                            export DOCKER_REGISTRY="${DOCKER_REGISTRY}"
-                            export DOCKER_REPO="${DOCKER_REPO}"
-                            export BUILD_NUMBER="${BUILD_NUMBER}"
-                            
-                            docker pull ${IMAGE_TAG}
-                            docker-compose down || true
-                            docker-compose up -d
-                            docker-compose ps
-                            
-                            sleep 10
-                            curl -s http://localhost:3000 || echo "Health check pending..."
+                echo "🚀 Deploying to target server..."
+                sh '''
+                    mkdir -p ~/.ssh
+                    echo "${TARGET_KEY}" > ~/.ssh/deploy_key
+                    chmod 600 ~/.ssh/deploy_key
+                    
+                    SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ~/.ssh/deploy_key"
+                    
+                    ssh ${SSH_OPTS} ubuntu@${TARGET_HOST} << 'EOF'
+                        mkdir -p /opt/node-app-pipeline
+                        cd /opt/node-app-pipeline
+                        docker pull docker.io/shashikumarrreddy/node-app-pipeline:latest
+                        docker-compose down || true
+                        docker-compose up -d
+                        docker-compose ps
 EOF
-                    '''
-                }
+                '''
             }
         }
     }
 
     post {
         always {
-            script {
-                echo "📝 Pipeline execution completed"
-                sh '''
-                    rm -f ~/.ssh/deploy_key || true
-                    docker logout || true
-                '''
-            }
-        }
-
-        success {
-            echo "✅ Pipeline succeeded!"
-        }
-
-        failure {
-            echo "❌ Pipeline failed!"
+            sh 'rm -f ~/.ssh/deploy_key || true'
         }
     }
 }

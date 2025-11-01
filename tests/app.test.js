@@ -1,5 +1,5 @@
 const request = require('supertest');
-const app = require('../src/app');
+const app = require('../src');
 
 describe('Secure Node.js Application', () => {
   
