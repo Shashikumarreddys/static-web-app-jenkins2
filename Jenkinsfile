@@ -4,13 +4,11 @@ pipeline {
     environment {
         DOCKER_REGISTRY = 'docker.io'
         DOCKER_REPO = 'shashikumarrreddy/node-app-pipeline'
-        DOCKER_CREDENTIALS = credentials('dockerhub-credentials')
+        DOCKER_IMAGE = "${DOCKER_REGISTRY}/${DOCKER_REPO}:latest"
         TARGET_HOST = credentials('target-host')
+        TARGET_USER = 'ubuntu'
         TARGET_KEY = credentials('target-ssh-key')
         DEPLOY_PATH = '/opt/node-app-pipeline'
-        BUILD_TAG = "${BUILD_NUMBER}"
-        IMAGE_TAG = "${DOCKER_REGISTRY}/${DOCKER_REPO}:${BUILD_TAG}"
-        LATEST_TAG = "${DOCKER_REGISTRY}/${DOCKER_REPO}:latest"
     }
 
     stages {
@@ -21,25 +19,10 @@ pipeline {
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Verify Image in Registry') {
             steps {
-                echo "🐳 Building Docker image..."
-                sh '''
-                    docker build -t ${IMAGE_TAG} -t ${LATEST_TAG} -f Dockerfile .
-                    docker images | grep node-app-pipeline
-                '''
-            }
-        }
-
-        stage('Push to Docker Registry') {
-            steps {
-                echo "📤 Pushing image to Docker registry..."
-                sh '''
-                    echo "${DOCKER_CREDENTIALS_PSW}" | docker login -u "${DOCKER_CREDENTIALS_USR}" --password-stdin
-                    docker push ${IMAGE_TAG}
-                    docker push ${LATEST_TAG}
-                    docker logout
-                '''
+                echo "✅ Using pre-built image: ${DOCKER_IMAGE}"
+                sh 'echo "Image tag: ${DOCKER_IMAGE}"'
             }
         }
 
@@ -56,15 +39,28 @@ pipeline {
                     
                     SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ~/.ssh/deploy_key"
                     
-                    ssh ${SSH_OPTS} ubuntu@${TARGET_HOST} << 'EOF'
+                    ssh ${SSH_OPTS} ${TARGET_USER}@${TARGET_HOST} << 'EOF'
+                        echo "📦 Deploying application..."
                         mkdir -p ${DEPLOY_PATH}
                         cd ${DEPLOY_PATH}
-                        docker pull ${IMAGE_TAG}
+                        
+                        echo "📥 Pulling latest image..."
+                        docker pull ${DOCKER_IMAGE}
+                        
+                        echo "🛑 Stopping old container..."
                         docker-compose down || true
+                        
+                        echo "🚀 Starting new container..."
                         docker-compose up -d
+                        
+                        echo "📊 Container status:"
                         docker-compose ps
+                        
+                        echo "⏳ Waiting for app to start..."
                         sleep 10
-                        curl -s http://localhost:3000/api/health || echo "Health check pending..."
+                        
+                        echo "🏥 Health check:"
+                        curl -s http://localhost:3000/api/health || echo "App starting..."
 EOF
                 '''
             }
