@@ -6,12 +6,7 @@ pipeline {
         DOCKER_REPO = 'shashikumarrreddy/node-app-pipeline'
         DOCKER_CREDENTIALS = credentials('dockerhub-credentials')
         GITHUB_CREDENTIALS = credentials('github-credentials')
-        SONARQUBE_SERVER = 'SonarQube'
-        SONAR_HOST_URL = 'http://localhost:9000'
-        GITLEAKS_REPORT = 'gitleaks-report.json'
-        TRIVY_REPORT = 'trivy-report.json'
         TARGET_HOST = credentials('target-host')
-        TARGET_USER = 'ubuntu'
         TARGET_KEY = credentials('target-ssh-key')
         DEPLOY_PATH = '/opt/node-app-pipeline'
         BUILD_TAG = "${BUILD_NUMBER}"
@@ -32,18 +27,6 @@ pipeline {
                 script {
                     echo "🔄 Checking out code from repository..."
                     checkout scm
-                }
-            }
-        }
-
-        stage('Build Application') {
-            steps {
-                script {
-                    echo "🏗️  Building Node.js application..."
-                    sh '''
-                        npm install || true
-                        npm test -- --coverage --watchAll=false || true
-                    '''
                 }
             }
         }
@@ -93,8 +76,6 @@ pipeline {
                         chmod 600 ~/.ssh/deploy_key
                         
                         SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ~/.ssh/deploy_key"
-                        
-                        scp ${SSH_OPTS} docker-compose.yml ${TARGET_USER}@${TARGET_HOST}:${DEPLOY_PATH}/ || true
                         
                         ssh ${SSH_OPTS} ${TARGET_USER}@${TARGET_HOST} << 'EOF'
                             mkdir -p ${DEPLOY_PATH}
