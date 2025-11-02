@@ -5,7 +5,7 @@ pipeline {
         DOCKER_REGISTRY = 'docker.io'
         DOCKER_REPO = 'shashikumarrreddy/node-app-pipeline'
         DOCKER_IMAGE = "${DOCKER_REGISTRY}/${DOCKER_REPO}:latest"
-        TARGET_HOST = credentials('target-host')
+        TARGET_HOST = '13.204.77.170'
         TARGET_USER = 'ubuntu'
         TARGET_KEY = credentials('target-ssh-key')
         DEPLOY_PATH = '/opt/node-app-pipeline'
