@@ -27,41 +27,35 @@ pipeline {
         }
 
         stage('Deploy to Target Server') {
-            steps {
-                echo "🚀 Deploying to target server..."
-                sh '''
-                    mkdir -p ~/.ssh
-                    echo "${TARGET_KEY}" > ~/.ssh/deploy_key
-                    chmod 600 ~/.ssh/deploy_key
+    steps {
+        echo "🚀 Deploying to target server..."
+        withCredentials([sshUserPrivateKey(credentialsId: 'target-ssh-key', keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER')]) {
+            sh '''
+                ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i $SSH_KEY $SSH_USER@13.204.77.170 << 'EOF'
+                    cd /opt/node-app-pipeline
+                    echo "📥 Pulling latest image..."
+                    docker pull docker.io/shashikumarrreddy/node-app-pipeline:latest
                     
-                    SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ~/.ssh/deploy_key"
+                    echo "🛑 Stopping old container..."
+                    docker-compose down || true
                     
-                    ssh ${SSH_OPTS} ${TARGET_USER}@${TARGET_HOST} << 'EOF'
-                        echo "📦 Deploying application..."
-                        mkdir -p ${DEPLOY_PATH}
-                        cd ${DEPLOY_PATH}
-                        
-                        echo "📥 Pulling latest image..."
-                        docker pull ${DOCKER_IMAGE}
-                        
-                        echo "🛑 Stopping old container..."
-                        docker-compose down || true
-                        
-                        echo "🚀 Starting new container..."
-                        docker-compose up -d
-                        
-                        echo "📊 Container status:"
-                        docker-compose ps
-                        
-                        echo "⏳ Waiting for app to start..."
-                        sleep 10
-                        
-                        echo "🏥 Health check:"
-                        curl -s http://localhost:3000/api/health || echo "App starting..."
+                    echo "🚀 Starting new container..."
+                    docker-compose up -d
+                    
+                    echo "📊 Container status:"
+                    docker-compose ps
+                    
+                    echo "⏳ Waiting for app to start..."
+                    sleep 10
+                    
+                    echo "🏥 Health check:"
+                    curl -s http://localhost:3000/api/health || echo "App starting..."
 EOF
-                '''
-            }
+            '''
         }
+    }
+}
+
     }
 
     post {
