@@ -29,7 +29,7 @@ pipeline {
         stage('Deploy to Target Server') {
     steps {
         echo "🚀 Deploying to target server..."
-        withCredentials([sshUserPrivateKey(credentialsId: 'target-ssh-key', keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER')]) {
+        withCredentials([sshUserPrivateKey(credentialsId: 'ec2-ssh-key', keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER')]) {
             sh '''
                 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i $SSH_KEY $SSH_USER@13.204.77.170 << 'EOF'
                     cd /opt/node-app-pipeline
